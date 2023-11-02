@@ -1,0 +1,47 @@
+---
+- name: Deploy Apache and FTP containers
+  hosts: 192.168.0.134
+  become: yes
+  tasks:
+    - name: Create a Docker network
+      docker_network:
+        name: my_network  # docker create network my_network
+        state: present
+
+    - name: Start Apache container
+      docker_container:
+        name: apache_container
+        image: my-httpd-image  # static page already included in custome docker image
+        state: started
+        ports:
+          - "8080:80"
+        networks:
+          - name: my_network
+#        volumes:
+#          - /home/mukund/ansible-playbooks/index.html:/usr/local/apache2/htdocs
+        restart_policy: always
+
+
+    - name: Pull FTP container image
+      docker_image:
+        name: stilliard/pure-ftpd  # docker pull stilliard/pure-ftp from docker registry https://hub.docker.com/r/stilliard/pure-ftpd/
+        source: pull
+        state: present
+
+    - name: Create an FTP container
+      docker_container:
+        name: ftp_container
+        image: stilliard/pure-ftpd
+        state: started
+        ports:
+          - "21:21"
+        networks:
+          - name: my_network
+        volumes:
+          - /home/mukund/Downloads:/home/ftpuser
+        env:
+          FTP_USER_NAME: ftpuser
+          FTP_USER_PASS: ftp_password
+          FTP_USER_HOME: /home/ftpuser
+        restart_policy: always
+
